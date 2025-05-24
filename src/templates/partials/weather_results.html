@@ -1,0 +1,57 @@
+{% if error_message %}
+<div class="error-message">{{ error_message }}</div>
+{% elif city_info and weather %}
+<div class="weather-card">
+    <h2>
+        Погода в {{ city_info.name }} {% if city_info.country_code %} , {{
+        city_info.country_code }} {% endif %}
+    </h2>
+    <p>
+        <em
+            >{{ weather.timezone }} ({{ weather.timezone_abbreviation }}) |
+            Высота над уровнем моря: {{ "%.0f"|format(weather.elevation) }}м</em
+        >
+    </p>
+    <h4>Прогноз погоды на сегодня ({{ hourly_forecast_limit }}h)</h4>
+    <div class="hourly-forecast-scroll">
+        {% for i in range(weather.hourly.time | length) %} {% if loop.index0 <
+        hourly_forecast_limit %}
+        <div class="hour-tile">
+            <strong>{{ weather.hourly.time[i].strftime("%H:%M") }}</strong>
+            <div class="weather-description">
+                {{ get_weather_description(weather.hourly.weather_code[i]) }}
+            </div>
+            <div>
+                <span class="temp"
+                    >{{ "%.0f"|format(weather.hourly.temperature_2m[i]) if
+                    weather.hourly.temperature_2m[i] is not none else '-'
+                    }}&deg;</span
+                >
+                <small
+                    >Ощущается как {{
+                    "%.0f"|format(weather.hourly.apparent_temperature[i]) if
+                    weather.hourly.apparent_temperature[i] is not none else '-'
+                    }}&deg;</small
+                >
+            </div>
+            <div>
+                <small
+                    >💧 {{ weather.hourly.precipitation_probability[i] if
+                    weather.hourly.precipitation_probability[i] is not none else
+                    '-' }}%</small
+                >
+            </div>
+            <div>
+                <small
+                    >💨 {{ "%.0f"|format(weather.hourly.wind_speed_10m[i]) if
+                    weather.hourly.wind_speed_10m[i] is not none else '-' }}
+                    км/ч</small
+                >
+            </div>
+        </div>
+        {% endif %} {% endfor %}
+    </div>
+</div>
+{% else %}
+<p class="placeholder-text">Enter a city to see the forecast.</p>
+{% endif %}

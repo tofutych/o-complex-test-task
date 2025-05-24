@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{{ title }}</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', path='/style.css') }}"
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Underdog&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            body {
+                margin: 0;
+                background-color: #f0f2f5;
+                color: #1c1e21;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-height: 100vh;
+                padding-top: 20px;
+            }
+            .container {
+                max-width: 900px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <a href="{{ url_for('read_root') }}" class="nav-link">На главную</a>
+            <h1>{{ title }}</h1>
+            <h2>Ваша недавняя история поиска</h2>
+            <div
+                class="personal-stats-container"
+                id="personalSearchHistory"
+            ></div>
+            <hr />
+            <h2>Общая статистика поиска</h2>
+            <div class="chart-container">
+                <canvas id="citySearchChart"></canvas>
+            </div>
+        </div>
+
+        <script>
+            const API_OVERALL_STATS_URL = "{{ api_overall_stats_url }}";
+            const API_MY_HISTORY_URL = "{{ api_my_history_url }}";
+            const OVERALL_STATS_LIMIT = 15;
+            const MY_HISTORY_LIMIT = 5;
+
+            async function fetchOverallSearchData(limit = OVERALL_STATS_LIMIT) {
+                if (!API_OVERALL_STATS_URL) {
+                    console.error("Overall stats API URL is not defined.");
+                    return [];
+                }
+                try {
+                    const response = await fetch(
+                        `${API_OVERALL_STATS_URL}?limit=${limit}`,
+                    );
+                    if (!response.ok)
+                        throw new Error(
+                            `HTTP Error. Status: ${response.status}`,
+                        );
+                    return await response.json();
+                } catch (error) {
+                    console.error(
+                        "Could not fetch overall search data:",
+                        error,
+                    );
+                    return [];
+                }
+            }
+
+            async function renderOverallChart() {
+                const searchData = await fetchOverallSearchData();
+                const chartCanvas = document.getElementById("citySearchChart");
+                if (!chartCanvas) return;
+                const ctx = chartCanvas.getContext("2d");
+
+                if (searchData.length === 0) {
+                    ctx.font = "16px 'Underdog', cursive";
+                    ctx.textAlign = "center";
+                    ctx.fillText(
+                        "Нет данных или произошла ошибка.",
+                        ctx.canvas.width / 2,
+                        ctx.canvas.height / 2,
+                    );
+                    return;
+                }
+                const labels = searchData.map(
+                    (item) =>
+                        item.city_name +
+                        (item.country_code ? `, ${item.country_code}` : ""),
+                );
+                const counts = searchData.map((item) => item.search_count);
+
+                new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: "Количество запросов",
+                                data: counts,
+                                backgroundColor: "rgba(0, 123, 255, 0.5)",
+                                borderColor: "rgba(0, 123, 255, 1)",
+                                borderWidth: 1,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: "Количество запросов",
+                                },
+                            },
+                            x: { title: { display: true, text: "Город" } },
+                        },
+                        plugins: {
+                            legend: { display: true, position: "top" },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        /* ... */ return (
+                                            (context.dataset.label || "") +
+                                            ": " +
+                                            context.parsed.y
+                                        );
+                                    },
+                                },
+                            },
+                        },
+                    },
+                });
+            }
+
+            async function fetchMySearchHistory(limit = MY_HISTORY_LIMIT) {
+                if (!API_MY_HISTORY_URL) {
+                    console.error("My search history API URL is not defined.");
+                    document.getElementById("personalSearchHistory").innerHTML =
+                        "<p>Не удалось загрузить вашу историю.</p>";
+                    return [];
+                }
+                try {
+                    const response = await fetch(
+                        `${API_MY_HISTORY_URL}?limit=${limit}`,
+                    );
+                    if (!response.ok) {
+                        if (
+                            response.status === 401 ||
+                            response.status === 403
+                        ) {
+                            throw new Error(
+                                `Authorization Error. Status: ${response.status}`,
+                            );
+                        }
+                        throw new Error(
+                            `HTTP Error. Status:: ${response.status}`,
+                        );
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error(
+                        "Could not fetch personal search history:",
+                        error,
+                    );
+                    document.getElementById("personalSearchHistory").innerHTML =
+                        `<p>Не удалось загрузить историю: ${error.message}.</p>`;
+                    return [];
+                }
+            }
+
+            function displayMySearchHistory(historyData) {
+                const container = document.getElementById(
+                    "personalSearchHistory",
+                );
+                if (!container) return;
+
+                if (historyData.length === 0) {
+                    container.innerHTML =
+                        "<p>Вы еще ничего не искали или история поиска пуста.</p>";
+                    return;
+                }
+
+                let html = "<ul>";
+                historyData.forEach((item) => {
+                    const date = new Date(item.searched_at);
+                    const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                    html += `<li>${item.city_name}${item.country_code ? ", " + item.country_code : ""} - <small>(${formattedDate})</small></li>`;
+                });
+                html += "</ul>";
+                container.innerHTML = html;
+            }
+
+            async function loadPersonalStats() {
+                const historyData = await fetchMySearchHistory();
+                displayMySearchHistory(historyData);
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                renderOverallChart();
+                loadPersonalStats();
+            });
+        </script>
+    </body>
+</html>

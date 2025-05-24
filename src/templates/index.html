@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ title }}</title>
+        <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+        <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Underdog&display=swap"
+              rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <a href="{{ url_for("search_stats_page") }}" class="nav-link">Посмотреть статистику поиска</a>
+            <h1>Weather App</h1>
+            {% if recent_city_info and recent_city_info.name %}
+                <div class="recent-city-prompt">
+                    <p>
+                        Недавнее:
+                        <a href="#"
+                           hx-post="{{ url_for("search_weather_htmx") }}"
+                           hx-vals='{"city": "{{ recent_city_info.name }}{% if recent_city_info.country %}, {{ recent_city_info.country }}{% endif %}"}'
+                           hx-target="#weather-results"
+                           hx-swap="innerHTML"
+                           title="Get weather for {{ recent_city_info.name }}">
+                            {{ recent_city_info.name }}
+                            {% if recent_city_info.country %}, {{ recent_city_info.country }}{% endif %}
+                        </a>
+                    </p>
+                </div>
+            {% endif %}
+            <form hx-post="{{ url_for("search_weather_htmx") }}"
+                  hx-target="#weather-results"
+                  hx-swap="innerHTML"
+                  class="search-form">
+                <div class="input-group">
+                    <input type="text"
+                           name="city"
+                           id="city-input"
+                           placeholder="Введите название города (например: Krasnodar)"
+                           required
+                           hx-get="{{ url_for("autocomplete_city_htmx") }}"
+                           hx-trigger="keyup changed"
+                           hx-target="#autocomplete-container"
+                           hx-swap="innerHTML"
+                           autocomplete="off"
+                           hx-on:focus="this.style.backgroundColor='lightblue'"
+                           hx-on:blur="this.style.backgroundColor='white'">
+                    <button type="submit">Искать</button>
+                </div>
+                <div id="autocomplete-container"></div>
+            </form>
+            <div id="weather-results" hx-swap-oob="true"></div>
+        </div>
+        <script>
+        document.addEventListener('click', function(event) {
+            const autocompleteContainer = document.getElementById('autocomplete-container');
+            const cityInput = document.getElementById('city-input');
+            if (autocompleteContainer && !cityInput.contains(event.target) && !autocompleteContainer.contains(event.target)) {
+                autocompleteContainer.innerHTML = '';
+            }
+        });
+        </script>
+    </body>
+</html>

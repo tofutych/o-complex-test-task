@@ -1,0 +1,19 @@
+<ul class="suggestions-list">
+    {% if suggestions %}
+        {% for city in suggestions %}
+            <li hx-post="{{ url_for("search_weather_htmx") }}"
+                hx-vals='{"city": "{{ city.name }}, {{ city.country_code }}"}'
+                hx-target="#weather-results"
+                hx-swap="innerHTML"
+                onclick="document.getElementById('city-input').value = '{{ city.name }}, {{ city.country }} '; document.getElementById('autocomplete-container').innerHTML = '';">
+                {{ city.name }}
+                <small class="suggestion-detail">
+                    {% if city.admin1 and city.admin1|lower != city.name|lower %}{{ city.admin1 }},{% endif %}
+                    {{ city.country }} ({{ city.country_code }})
+                </small>
+            </li>
+        {% endfor %}
+    {% else %}
+        <li class="no-suggestion">No cities found matching your query.</li>
+    {% endif %}
+</ul>
