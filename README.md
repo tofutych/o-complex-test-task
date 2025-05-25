@@ -45,7 +45,3 @@ docker-compose up --build
 *   **[HTMX](https://htmx.org/)**
 *   **Шаблонизатор — [Jinja2](https://jinja.palletsprojects.com/)**
 *   **Визуализация данных — [Chart.js](https://www.chartjs.org/)**
-*   **Стилизация:**
-
-
-
