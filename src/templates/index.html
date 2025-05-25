@@ -21,10 +21,10 @@
                         Недавнее:
                         <a href="#"
                            hx-post="{{ url_for("search_weather_htmx") }}"
-                           hx-vals='{"city": "{{ recent_city_info.name }}{% if recent_city_info.country %}, {{ recent_city_info.country }}{% endif %}"}'
+                           hx-vals='{"city": "{{ recent_city_info.name }}, {{ recent_city_info.country_code }}"}'
                            hx-target="#weather-results"
                            hx-swap="innerHTML"
-                           title="Get weather for {{ recent_city_info.name }}">
+                           title="Посмотреть погоду города {{ recent_city_info.name }}">
                             {{ recent_city_info.name }}
                             {% if recent_city_info.country %}, {{ recent_city_info.country }}{% endif %}
                         </a>
